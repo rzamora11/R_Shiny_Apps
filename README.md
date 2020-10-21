@@ -3,3 +3,8 @@ R Studio App for visualizing various data from National Statistic Institute of S
 
 # Unemployment Spain
 Various series of unemployment in Spain, visualised with basic plots and tables
+
+# Doctorates Spain
+Not a serie, just a small survey of employment in between doctorates and its sector.
+
+Remember to open the files with UTF-8 encoding, there is spanish accents for the names.
