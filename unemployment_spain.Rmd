@@ -1,0 +1,325 @@
+---
+title: "Datos Macroeconomia Avanzado"
+output: html_document
+---
+
+
+```{r}
+#Parados por grupo de edad, sexo y comunidad autónoma. Valores absolutos.
+#Unidades: Miles de personas
+library(pxR)
+data <- read.px("https://www.ine.es/jaxiT3/files/t/es/px/4245.px?nocab=1")
+final_data_Parados_VA <- as.data.frame(data)
+colnames(final_data_Parados_VA)[which(names(final_data_Parados_VA)=="value")] <- "Parados (miles de personas)"
+#View(final_data_Parados_VA)
+```
+
+```{r}
+#Parados por grupo de edad, sexo y comunidad autónoma. Porcentajes respecto del total de cada comunidad
+#Unidades: Porcentajes
+
+data <- read.px("http://www.ine.es/jaxiT3/files/t/es/px/4965.px?nocab=1")
+final_data_Parados_Porcentaje <- as.data.frame(data)
+colnames(final_data_Parados_Porcentaje)[which(names(final_data_Parados_Porcentaje)=="value")] <- "Porcentaje (%)"
+#View(final_data_Parados_Porcentaje)
+```
+
+```{r}
+#Tasas de paro por distintos grupos de edad, sexo y comunidad autónoma
+#Unidades: Tasas
+
+data <- read.px("http://www.ine.es/jaxiT3/files/t/es/px/4966.px?nocab=1")
+final_data_Tasa_Paro_Edad <- as.data.frame(data)
+colnames(final_data_Tasa_Paro_Edad)[which(names(final_data_Tasa_Paro_Edad)=="value")] <- "Tasa"
+#View(final_data_Tasa_Paro_Edad)
+```
+
+```{r}
+#Tasas de paro por nacionalidad, sexo y comunidad autónoma
+#Unidades: Tasas 
+
+data <- read.px("http://www.ine.es/jaxiT3/files/t/es/px/4968.px?nocab=1")
+final_data_Tasa_Paro_Nacionalidad <- as.data.frame(data)
+colnames(final_data_Tasa_Paro_Nacionalidad)[which(names(final_data_Tasa_Paro_Nacionalidad)=="value")] <- "Tasa"
+#View(final_data_Tasa_Paro_Nacionalidad)
+```
+
+
+```{r}
+library(shiny)
+
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+   
+   # Application title
+   titlePanel("Parados en España"),
+   
+   # Sidebar with a slider input for number of bins 
+   sidebarLayout(
+      sidebarPanel(
+         selectInput("variable", "Seleccione la variable:",c("Parados por grupo de edad, sexo y comunidad autónoma. Valores absolutos"="final_data_Parados_VA",
+                                                            "Parados por grupo de edad, sexo y comunidad autónoma. Porcentajes respecto del total de cada comunidad"="final_data_Parados_Porcentaje",
+                                                            "Tasas de paro por distintos grupos de edad, sexo y comunidad autónoma"="final_data_Tasa_Paro_Edad",
+                                                            "Tasas de paro por nacionalidad, sexo y comunidad autónoma"="final_data_Tasa_Paro_Nacionalidad"),selected = NULL),
+         
+
+         radioButtons("Region", "Seleccione la region:", c("Total nacional"= "Total Nacional",
+                                                           "Andalucia" = "01 Andalucía", 
+                                                           "Aragón"= "02 Aragón",
+                                                           "Asturias" = "03 Asturias, Principado de",
+                                                           "Islas Baleares" = "04 Balears, Illes",
+                                                           "Canarias" = "05 Canarias",
+                                                           "Cantabria" = "06 Cantabria",
+                                                           "Castilla y León" = "07 Castilla y León",
+                                                           "Castilla la Mancha" = "08 Castilla - La Mancha",
+                                                           "Cataluña" = "09 Cataluña",
+                                                           "Comunidad Valenciana" = "10 Comunitat Valenciana",
+                                                           "Extremadura" = "11 Extremadura",
+                                                           "Galicia" = "12 Galicia",
+                                                           "Comunidad de Madrid" = "13 Madrid, Comunidad de",
+                                                           "Región de Murcia" = "14 Murcia, Región de",
+                                                           "Comunidad Floral de Navarra" = "15 Navarra, Comunidad Foral de",
+                                                           "País Vasco" = "16 País Vasco",
+                                                           "La Rioja" = "17 Rioja, La",
+                                                           "Ceuta" = "18 Ceuta",
+                                                           "Melilla" = "19 Melilla")),
+
+        radioButtons("Sexo", "Seleccione el sexo:",c("Ambos sexos" = "Ambos sexos", "Hombres" = "Hombres", "Mujeres" = "Mujeres")),
+         
+       uiOutput( outputId = "colDif" )  
+         
+      ),
+      
+      # Show a plot of the generated distribution
+      mainPanel(
+        tabsetPanel(
+          tabPanel("Tabla",
+                    
+                   tableOutput("tabla")
+                   ),
+          tabPanel("Grafica",headerPanel("Gráficos varios"),
+                   textOutput("texto1"),
+                   br(),
+                  plotOutput("grafico1"),
+                   br(),
+                   textOutput("texto2"),
+                   br(),
+                  plotOutput("grafico2")
+          ),
+          #Botones de descargas 
+          tabPanel("Descargas",
+                   headerPanel("Seleccione el formato correspondiente para la descarga"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   downloadButton(outputId = "downloadData1",label = "Parados por grupo de edad, sexo y comunidad autónoma. Valores absolutos (Rdata)"),
+                   br(),
+                   downloadButton(outputId = "downloadData1bis",label = "Parados por grupo de edad, sexo y comunidad autónoma. Valores absolutos (CSV)"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   downloadButton(outputId = "downloadData2",label = "Parados por grupo de edad, sexo y comunidad autónoma. Porcentajes respecto del total de cada comunidad. (Rdata)"),
+                   br(),
+                   downloadButton(outputId = "downloadData2bis",label = "Parados por grupo de edad, sexo y comunidad autónoma. Porcentajes respecto del total de cada comunidad. (CSV)"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   downloadButton(outputId = "downloadData3",label = "Tasas de paro por distintos grupos de edad, sexo y comunidad autónoma. (Rdata)"),
+                   br(),
+                   downloadButton(outputId = "downloadData3bis",label = "Tasas de paro por distintos grupos de edad, sexo y comunidad autónoma. (CSV)"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   radioButtons("type","Descarga opcional tabla actual seleccionada:", 
+                   choices = c("Excel (CSV)","Texto (TSV)" = "Text (TSV)","Texto con espacios" = "Text (Space Separated)","Doc")),
+                   br(),
+                   downloadButton(outputId = "downloadDataActual",label = "Descargar")
+          )
+        )
+      )
+   )
+)
+
+
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+  
+  colDiferente <- reactive({
+    if(input$variable == "final_data_Tasa_Paro_Nacionalidad"){
+      radioButtons("Nacionalidad","Seleccione la nacionalidad",c("Total","Española","Extranjera: Total","Extranjera: Unión Europea","Extranjera: No pertenecientes a la Unión Europea"))
+    }else if(input$variable == "final_data_Tasa_Paro_Edad"){
+      radioButtons("Edad", "Seleccione el rango de edad:",c("Total","Menores de 25 años","25 y más años","De 16 a 19 años","De 20 a 24 años","De 25 a 54 años","55 y más años"))
+    }
+    else{
+      radioButtons("Edad", "Seleccione el rango de edad:",c("Total" = "Total",
+                    "De 16 a 19 años" = "De 16 a 19 años",
+                    "De 20 a 24 años" = "De 20 a 24 años", "De 25 a 34 años", "De 35 a 44 años", "De 45 a 54 años", "55 y más años"))
+    }
+  }) 
+  
+  output$colDif <- renderUI({
+    tagList(
+      colDiferente()
+    )
+  }) 
+  
+  tablaReactiva <- reactive({
+    if(input$variable=="final_data_Parados_VA"){
+     # final_data_Parados_VA
+      final_data_Parados_VA[(final_data_Parados_VA$Comunidades.y.Ciudades.Autónomas==input$Region) & (final_data_Parados_VA$Sexo==input$Sexo) & (final_data_Parados_VA$Edad==input$Edad),]
+    }else if(input$variable=="final_data_Parados_Porcentaje"){
+      #final_data_Parados_Porcentaje
+      final_data_Parados_Porcentaje[final_data_Parados_Porcentaje$Comunidades.y.Ciudades.Autónomas==input$Region & final_data_Parados_Porcentaje$Sexo==input$Sexo & (final_data_Parados_Porcentaje$Edad==input$Edad),]
+    }else if(input$variable=="final_data_Tasa_Paro_Edad"){
+      #final_data_Tasa_Paro_Edad
+      final_data_Tasa_Paro_Edad[final_data_Tasa_Paro_Edad$Comunidades.y.Ciudades.Autónomas==input$Region & final_data_Tasa_Paro_Edad$Sexo==input$Sexo & (final_data_Tasa_Paro_Edad$Edad==input$Edad),]
+    }else{
+      #final_data_Tasa_Paro_Nacionalidad
+      final_data_Tasa_Paro_Nacionalidad[(final_data_Tasa_Paro_Nacionalidad$Comunidades.y.Ciudades.Autónomas==input$Region) & (final_data_Tasa_Paro_Nacionalidad$Nacionalidad==input$Nacionalidad) & (final_data_Tasa_Paro_Nacionalidad$Sexo==input$Sexo),]
+    }
+  })
+  
+  output$tabla <- renderTable({
+    tablaReactiva()
+  })
+  
+  library(ggplot2)
+  # Generacion de graficos
+  output$grafico1 <- renderPlot({
+    resultado <- data.frame(tablaReactiva())
+    if(input$variable=="final_data_Parados_VA"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor)) + geom_bar(stat = "identity") + xlab("Año") + ylab("Miles de parados")
+    }
+    else if(input$variable=="final_data_Parados_Porcentaje"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor)) + geom_bar(stat = "identity") + xlab("Año") + ylab("Porcentaje de parados")
+    }
+    else if(input$variable=="final_data_Tasa_Paro_Edad"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor)) + geom_bar(stat = "identity") + ylab("Tasa paro según edad") + xlab("Año")
+    }
+    else if(input$variable=="final_data_Tasa_Paro_Nacionalidad"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor)) + geom_bar(stat = "identity") + ylab("Tasa paro según nacionalidad") + xlab("Año")
+ }
+     })
+  
+   output$grafico2 <- renderPlot({
+    resultado <- data.frame(tablaReactiva())
+    if(input$variable=="final_data_Parados_VA"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor,group=1)) + geom_line(group=1)+ xlab("Año") + ylab("Miles de parados")
+    }
+    else if(input$variable=="final_data_Parados_Porcentaje"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor,group=2)) + geom_line(group=2) + xlab("Año") + ylab("Porcentaje de parados")
+    }
+    else if(input$variable=="final_data_Tasa_Paro_Edad"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor,group=3)) + geom_line(group=3) + ylab("Tasa paro según edad") + xlab("Año")
+    }
+    else if(input$variable=="final_data_Tasa_Paro_Nacionalidad"){
+      valor <- resultado[,5]
+    ggplot(data=resultado,aes(x=Periodo,y=valor,group=4)) + geom_line(group=4) + ylab("Tasa paro según nacionalidad") + xlab("Año")
+ }
+     })
+  output$texto1 <- renderText({"Histograma de barras"})
+  output$texto2 <- renderText({"Gráficos de linea"})
+  
+  #Escogemos la extensión del archivo a descargar
+  fileext <- reactive({
+    switch(input$type,"Excel (CSV)" = "csv","Texto (TSV)" = "txt","Texto (separado por espacios" = "txt","Doc" = "doc")
+  })
+  
+  output$downloadDataActual <- downloadHandler(
+    filename = function() {
+      paste (input$variable,fileext(),sep=".") 
+    },
+    content = function(file) {
+      write.table(tablaReactiva(),file,row.names=FALSE)
+    }
+  )
+  output$downloadData1 <- downloadHandler(
+    filename = function() {
+      "final_data_Parados_VA.rdata"
+    },
+    content = function(file) {
+      save(final_data_Parados_VA, file = file)
+  
+}
+)
+  output$downloadData1bis <- downloadHandler(
+    filename = function() {
+      "final_data_Parados_VA.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Parados_VA, file, row.names = FALSE)
+  
+}
+)
+  output$downloadData2 <- downloadHandler(
+    filename = function() {
+      "final_data_Parados_Porcentaje.rdata"
+    },
+    content = function(file) {
+      save(final_data_Parados_Porcentaje, file = file)
+  
+}
+)
+  output$downloadData2bis <- downloadHandler(
+    filename = function() {
+      "final_data_Parados_Porcentaje.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Parados_Porcentaje, file, row.names = FALSE)
+  
+}
+)
+  output$downloadData3 <- downloadHandler(
+    filename = function() {
+      "final_data_Tasa_Paro_Edad.rdata"
+    },
+    content = function(file) {
+      save(final_data_Tasa_Paro_Edad, file = file)
+  
+}
+)
+  output$downloadData3bis <- downloadHandler(
+    filename = function() {
+      "final_data_Tasa_Paro_Edad.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Tasa_Paro_Edad, file, row.names = FALSE)
+  
+}
+)
+  output$downloadData4 <- downloadHandler(
+    filename = function() {
+      "final_data_Tasa_Paro_Nacionalidad.rdata"
+    },
+    content = function(file) {
+      save(final_data_Tasa_Paro_Nacionalidad, file = file)
+  
+}
+)
+  output$downloadData3bis <- downloadHandler(
+    filename = function() {
+      "final_data_Tasa_Paro_Nacionalidad.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Tasa_Paro_Nacionalidad, file, row.names = FALSE)
+  
+}
+)
+}
+# Run the application 
+shinyApp(ui = ui, server = server)
+```
+
+
