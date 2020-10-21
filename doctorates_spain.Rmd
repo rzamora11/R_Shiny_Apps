@@ -1,0 +1,262 @@
+---
+title: "Entrega politicas sectoriales"
+author: "rzc"
+date: "20 de septiembre de 2019"
+output: html_document
+---
+
+```{r}
+#Porcentaje de doctores por campo de doctorado y situación laboral
+library(pxR)
+data <- read.px("http://www.ine.es/jaxi/files/_px/es/px/t14/p225/a2009/l0/03001.px?nocab=1")
+doctorados_campo <- as.data.frame(data)
+colnames(doctorados_campo)[which(names(doctorados_campo)=="Situación.laboral.a.31.de.diciembre.de.2009")] <- "Situación.laboral"
+colnames(doctorados_campo)[which(names(doctorados_campo)=="value")] <- "Porcentaje de doctorados (%)"
+doctorados_campoaux <- doctorados_campo[c(6:8,10:12,14:16,18:20,22:24,26:28),]
+#gsub("Total","Empleado",doctorados_campoaux$Situación.laboral)
+View(doctorados_campo)
+View(doctorados_campoaux)
+```
+
+```{r}
+#Porcentaje de doctores por edad y situación laboral
+library(pxR)
+data <- read.px("http://www.ine.es/jaxi/files/_px/es/px/t14/p225/a2009/l0/03002.px?nocab=1")
+doctorados_edad <- as.data.frame(data)
+colnames(doctorados_edad)[which(names(doctorados_edad)=="Situación.laboral.a.31.de.diciembre.de.2009")] <- "Situación.laboral"
+colnames(doctorados_edad)[which(names(doctorados_edad)=="value")] <- "Porcentaje de doctorados (%)"
+doctorados_edadaux <- doctorados_edad[c(6:8,10:12,14:16,18:20,22:24),]
+View(doctorados_edad)
+```
+
+```{r}
+#Porcentaje de doctores empleados por campo de doctorado y sector de empleo.
+library(pxR)
+data <- read.px("http://www.ine.es/jaxi/files/_px/es/px/t14/p225/a2009/l0/03004.px?nocab=1")
+doctorados_sector <- as.data.frame(data)
+colnames(doctorados_sector)[which(names(doctorados_sector)=="value")] <- "Porcentaje de doctorados (%)"
+doctorados_sectoraux <- doctorados_sector[c(7:10,12:15,17:20,22:25,27:30,32:35),]
+View(doctorados_sector)
+```
+
+```{r}
+library(shiny)
+library(ggplot2)
+
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+   
+   # Application title
+   titlePanel("Doctorados en España"),
+   
+   # Sidebar with a slider input for number of bins 
+   sidebarLayout(
+      sidebarPanel(
+         selectInput("variable", "Seleccione la variable:",c("Porcentaje de doctores por campo de doctorado y situación laboral"="doctorados_campo",
+                                                             "Porcentaje de doctores por edad y situación laboral"="doctorados_edad",
+                                                             "Porcentaje de doctores empleados por campo de doctorado y sector de empleo."="doctorados_sector"),selected=NULL),
+         uiOutput( outputId = "colDif1"),
+         uiOutput( outputId = "colDif2")
+         ),
+      mainPanel(
+        tabsetPanel(
+          tabPanel("Tabla",
+                   br(),
+                     textOutput("texto1"),
+                   br(),
+                   tableOutput("tabla"),
+                   br(),
+                   tableOutput("tablaGeneral"),
+                   plotOutput("grafico")
+                   ),
+          #tabPanel("Grafica",headerPanel("Graficos varios"),
+           #        textOutput("texto1"),
+                   # plotOutput("grafico")),
+         tabPanel("Descargas",
+                  headerPanel("Seleccione el formato correspondiente para la descarga"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   downloadButton(outputId = "downloadData1",label = "Porcentaje de doctores por campo de doctorado y situación laboral. (Rdata)"),
+                   br(),
+                   downloadButton(outputId = "downloadData1bis",label = "Porcentaje de doctores por campo de doctorado y situación laboral. (CSV)"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   downloadButton(outputId = "downloadData2",label = "Porcentaje de doctores por edad y situación laboral. (Rdata)"),
+                   br(),
+                   downloadButton(outputId = "downloadData2bis",label = "Porcentaje de doctores por edad y situación laboral. (CSV)"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   downloadButton(outputId = "downloadData3",label = "Porcentaje de doctores empleados por campo de doctorado y sector de empleo. (Rdata)"),
+                   br(),
+                   downloadButton(outputId = "downloadData3bis",label = "Porcentaje de doctores empleados por campo de doctorado y sector de empleo. (CSV)"),
+                   br(),
+                   br(),
+                   br(),
+                   br(),
+                   radioButtons("type","Descarga opcional tabla actual seleccionada:", 
+                   choices = c("Excel (CSV)","Texto (TSV)" = "Text (TSV)","Texto con espacios" = "Text (Space Separated)","Doc")),
+                   br(),
+                   downloadButton(outputId = "downloadDataActual",label = "Descargar"))
+          )
+      )
+   )
+   )
+
+server <- function(input, output) {
+  
+  output$tablaGeneral <-renderTable({
+    tablaGeneralReactiva()
+  })
+  
+  tablaGeneralReactiva <- reactive ({
+    if(input$variable=="doctorados_campo"){
+      doctorados_campo
+    }
+    else if(input$variable=="doctorados_edad"){
+      doctorados_edad
+    }
+    else{
+      doctorados_sector
+    }
+  })
+  
+  output$texto1 <- renderText({"Valor en porcentaje (%) a 31 de diciembre de 2009:"})
+  output$texto2 <- renderText({"Gráfico en construcción."})
+  
+  tablaReactiva <- reactive({
+    if(input$variable=="doctorados_campo"){
+      doctorados_campo[(doctorados_campo$Situación.laboral==input$Situación.laboral) & (doctorados_campo$Campo.de.doctorado==input$Campo.de.doctorado),]
+    }
+    else if(input$variable=="doctorados_edad"){
+      doctorados_edad[(doctorados_edad$Situación.laboral==input$Situación.laboral) & (doctorados_edad$Edad==input$Edad),]
+    }
+    else{
+      doctorados_sector[(doctorados_sector$Sector.de.empleo==input$Sector.de.empleo) & (doctorados_sector$Campo.de.doctorado==input$Campo.de.doctorado),]
+    }
+  })
+   output$tabla <- renderTable({
+    tablaReactiva()
+  })
+  
+  colDiferente1 <- reactive({
+    if(input$variable == "doctorados_campo" || input$variable == "doctorados_edad"){
+      radioButtons("Situación.laboral","Seleccione la situación laboral:",c("Total","Empleado","Desempleado","Inactivo"))
+    }
+    else{
+      radioButtons("Sector.de.empleo", "Seleccione el sector laboral:",c("Total",
+                    "Empresas", "Administraciones Públicas", "Enseñanza Superior", "IPSFL"))
+    }
+  }) 
+  output$colDif1 <- renderUI({
+    tagList(
+      colDiferente1()
+    )
+  }) 
+  
+  colDiferente2 <- reactive({
+    if(input$variable == "doctorados_campo" || input$variable == "doctorados_sector"){
+      radioButtons("Campo.de.doctorado","Seleccione el campo de doctorado:",c("Total","Ciencias Naturales","Ingeniería y Tecnología","Ciencias Médicas","Ciencias de la Agricultura","Ciencias Sociales","Humanidades"))
+    }else if(input$variable == "doctorados_edad"){
+      radioButtons("Edad", "Seleccione el rango de edad:",c("Total","Menores de 35 años","Entre 35-44 años","Entre 45-54 años","Entre 65-69 años"))
+    }
+  }) 
+  output$colDif2 <- renderUI({
+    tagList(
+      colDiferente2()
+    )
+  }) 
+  
+  output$grafico <- renderPlot({
+    resultado <- data.frame(tablaGeneralReactiva())
+    
+    if(input$variable=="doctorados_campo"){
+      Campo <- doctorados_campoaux[,2]
+      Porcentaje <- doctorados_campoaux[,3]
+    ggplot(data=doctorados_campoaux,aes(x=Campo,y=Porcentaje))+geom_col()
+    }
+    else if(input$variable=="doctorados_edad"){
+      edad <- doctorados_edadaux[,2]
+      Porcentaje <- doctorados_edadaux[,3]
+    ggplot(data=doctorados_edadaux,aes(x=edad,y=Porcentaje))+geom_col()
+    }
+    else{
+      sector <- doctorados_sectoraux[,2]
+      Porcentaje <- doctorados_sectoraux[,3]
+    ggplot(data=doctorados_sectoraux,aes(x=sector,y=Porcentaje))+geom_col()
+    }
+  })
+  
+  output$downloadDataActual <- downloadHandler(
+    filename = function() {
+      paste (input$variable,fileext(),sep=".") 
+    },
+    content = function(file) {
+      write.table(tablaReactiva(),file,row.names=FALSE)
+    }
+  )
+  output$downloadData1 <- downloadHandler(
+    filename = function() {
+      "doctorados_campo.rdata"
+    },
+    content = function(file) {
+      save(final_data_Parados_VA, file = file)
+  
+}
+)
+  output$downloadData1bis <- downloadHandler(
+    filename = function() {
+      "doctorados_campo.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Parados_VA, file, row.names = FALSE)
+  
+}
+)
+  output$downloadData2 <- downloadHandler(
+    filename = function() {
+      "doctorados_edad.rdata"
+    },
+    content = function(file) {
+      save(final_data_Parados_Porcentaje, file = file)
+  
+}
+)
+  output$downloadData2bis <- downloadHandler(
+    filename = function() {
+      "doctorados_edad.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Parados_Porcentaje, file, row.names = FALSE)
+  
+}
+)
+  output$downloadData3 <- downloadHandler(
+    filename = function() {
+      "doctorados_sector.rdata"
+    },
+    content = function(file) {
+      save(final_data_Tasa_Paro_Edad, file = file)
+  
+}
+)
+  output$downloadData3bis <- downloadHandler(
+    filename = function() {
+      "doctorados_sector.csv"
+    },
+    content = function(file) {
+      write.csv(final_data_Tasa_Paro_Edad, file, row.names = FALSE)
+  
+}
+)
+
+}
+shinyApp(ui = ui, server = server)
+         
+```
+
